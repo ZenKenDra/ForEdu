@@ -173,10 +173,8 @@
         // Kunci API langsung ditanam
         const apiKey = "sk-zdyD24v9WtJgevHdw95wuke3LXfJ07dROvc8urubxoTlpKLA"; 
         
-        // URL API Agent Router. 
-        // Jika nanti diupload ke Github Pages dan error "Failed to fetch" / CORS, gunakan URL Proxy di bawah ini:
-        const API_URL = `https://agentrouter.org/v1/chat/completions`; 
-        // const API_URL = `https://corsproxy.io/?https://agentrouter.org/v1/chat/completions`;
+        // Menggunakan Proxy (corsproxy.io) untuk membypass blokir "unauthorized client" dari Agent Router
+        const API_URL = `https://corsproxy.io/?https://agentrouter.org/v1/chat/completions`; 
 
         const SYSTEM_INSTRUCTION = `
 Anda adalah "Edo", asisten AI yang cerdas, sabar, dan bersahabat di platform "ForEdu".
