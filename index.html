@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ForEdu - Tutorial Belajar Bersama AI</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* Custom scrollbar untuk chat */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Animasi loading dots */
+        .dot-flashing {
+            position: relative;
+            width: 8px;
+            height: 8px;
+            border-radius: 5px;
+            background-color: #3b82f6;
+            color: #3b82f6;
+            animation: dot-flashing 1s infinite linear alternate;
+            animation-delay: 0.5s;
+        }
+        .dot-flashing::before, .dot-flashing::after {
+            content: '';
+            display: inline-block;
+            position: absolute;
+            top: 0;
+        }
+        .dot-flashing::before {
+            left: -12px;
+            width: 8px;
+            height: 8px;
+            border-radius: 5px;
+            background-color: #3b82f6;
+            color: #3b82f6;
+            animation: dot-flashing 1s infinite alternate;
+            animation-delay: 0s;
+        }
+        .dot-flashing::after {
+            left: 12px;
+            width: 8px;
+            height: 8px;
+            border-radius: 5px;
+            background-color: #3b82f6;
+            color: #3b82f6;
+            animation: dot-flashing 1s infinite alternate;
+            animation-delay: 1s;
+        }
+        @keyframes dot-flashing {
+            0% { background-color: #3b82f6; }
+            50%, 100% { background-color: #dbeafe; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 shadow-md z-10 shrink-0">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-white p-2 rounded-lg text-blue-600">
+                    <i class="ph ph-books text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">ForEdu</h1>
+                    <p class="text-blue-200 text-sm">Belajar Bersama Edo, Asisten Tutorialmu</p>
+                </div>
+            </div>
+            <div class="hidden sm:flex items-center gap-2 text-blue-100 text-sm bg-blue-700 py-1 px-3 rounded-full">
+                <i class="ph ph-users"></i> Tutorial Interaktif
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Chat Area -->
+    <main id="chat-container" class="flex-1 overflow-y-auto p-4 md:p-6 w-full max-w-4xl mx-auto scroll-smooth flex flex-col gap-6">
+        
+        <!-- Welcome Message / First Bot Message -->
+        <div class="flex justify-start">
+            <div class="flex gap-3 max-w-[90%] md:max-w-[80%] flex-row">
+                <div class="shrink-0 mt-1">
+                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center border border-blue-200 shadow-sm">
+                        <i class="ph ph-robot text-xl text-blue-600"></i>
+                    </div>
+                </div>
+                <div class="p-4 rounded-2xl shadow-sm leading-relaxed text-[15px] bg-white border border-slate-100 text-slate-700 rounded-tl-sm">
+                    Halo! Namaku <strong>Edo</strong>, asisten AI di <strong>ForEdu</strong>. 👋<br><br>
+                    Aku siap menemani kamu belajar hari ini. Kita bisa bahas materi Matematika, Sains, Coding, atau bikin tutorial belajar langkah-demi-langkah bersama-sama.<br><br>
+                    Materi apa yang ingin kita pelajari bareng hari ini?
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Loading Indicator (Hidden by default) -->
+    <div id="loading-indicator" class="hidden max-w-4xl mx-auto w-full px-4 md:px-6 pb-2">
+        <div class="flex justify-start">
+            <div class="flex gap-3 flex-row items-center">
+                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center border border-blue-200 shadow-sm shrink-0">
+                    <i class="ph ph-robot text-xl text-blue-600"></i>
+                </div>
+                <div class="bg-white border border-slate-100 rounded-2xl rounded-tl-sm p-4 shadow-sm flex items-center h-[54px]">
+                    <div class="dot-flashing ml-3 mr-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Message (Hidden by default) -->
+    <div id="error-message" class="hidden text-red-500 text-sm mb-2 text-center flex items-center justify-center gap-1 shrink-0">
+        <i class="ph ph-warning-circle"></i> <span id="error-text">Terjadi kesalahan.</span>
+    </div>
+
+    <!-- Input Area -->
+    <footer class="bg-white border-t border-slate-200 p-4 shrink-0">
+        <div class="max-w-4xl mx-auto">
+            
+            <!-- Quick Suggestions -->
+            <div id="suggestions" class="flex flex-wrap gap-2 mb-3">
+                <button onclick="useSuggestion('Tolong buatkan tutorial dasar belajar HTML dong, Edo.')" class="text-xs bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 py-1.5 px-3 rounded-full transition-colors border border-slate-200 cursor-pointer">
+                    🌐 Tutorial Dasar HTML
+                </button>
+                <button onclick="useSuggestion('Edo, mari belajar bareng rumus Fisika tentang gaya.')" class="text-xs bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 py-1.5 px-3 rounded-full transition-colors border border-slate-200 cursor-pointer">
+                    🚀 Rumus Fisika: Gaya
+                </button>
+                <button onclick="useSuggestion('Bantu aku memahami konsep pecahan dalam matematika.')" class="text-xs bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 py-1.5 px-3 rounded-full transition-colors border border-slate-200 cursor-pointer">
+                    ➗ Belajar Pecahan
+                </button>
+            </div>
+
+            <form id="chat-form" class="relative flex items-center">
+                <input
+                    type="text"
+                    id="user-input"
+                    placeholder="Ketik topik pelajaran atau pertanyaan di sini..."
+                    class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-full py-3 pl-5 pr-14 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow disabled:bg-slate-100 disabled:text-slate-400 shadow-inner"
+                    autocomplete="off"
+                />
+                <button
+                    type="submit"
+                    id="send-button"
+                    disabled
+                    class="absolute right-2 p-2 rounded-full transition-colors flex items-center justify-center bg-slate-200 text-slate-400 cursor-not-allowed w-10 h-10"
+                >
+                    <i class="ph ph-paper-plane-right text-lg"></i>
+                </button>
+            </form>
+            <div class="text-center mt-2">
+                <span class="text-[10px] text-slate-400">Edo dari ForEdu dapat membuat kesalahan. Selalu periksa kembali fakta-fakta penting.</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Konfigurasi API ---
+        const apiKey = ""; // Kunci otomatis diinjeksi oleh platform
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        const SYSTEM_INSTRUCTION = `
+Anda adalah "Edo", asisten AI yang cerdas, sabar, dan bersahabat di platform "ForEdu".
+Fokus utama Anda adalah menyediakan tutorial belajar bersama yang interaktif, jelas, dan mudah diikuti.
+
+Tugas Anda:
+1. Memberikan tutorial langkah demi langkah (step-by-step) untuk berbagai mata pelajaran (Matematika, IPA, Pemrograman, Bahasa, dll).
+2. Bertindak seperti teman belajar atau tutor: gunakan kata ganti "aku" (untuk Edo) dan "kamu" (untuk pengguna).
+3. Jika pengguna bertanya hal yang rumit, pecah penjelasan menjadi poin-poin kecil yang mudah dicerna.
+4. Akhiri penjelasan dengan pertanyaan ringan untuk memastikan pengguna paham, misalnya "Gimana, bagian ini sudah jelas belum?", atau "Mau lanjut ke langkah berikutnya?".
+5. Selalu gunakan format Markdown (seperti **teks tebal** untuk penekanan) agar mudah dibaca.
+
+Gaya Bahasa:
+- Bahasa Indonesia santai tapi sopan dan edukatif (ala tutor sebaya).
+- Ramah, bersemangat, dan banyak memberikan pujian/motivasi jika pengguna berhasil memahami sesuatu.
+`;
+
+        // State variables
+        let conversationHistory = [];
+        let isLoading = false;
+
+        // DOM Elements
+        const chatContainer = document.getElementById('chat-container');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+        const suggestionsDiv = document.getElementById('suggestions');
+
+        // Mengatur status tombol kirim
+        userInput.addEventListener('input', () => {
+            const text = userInput.value.trim();
+            if (text && !isLoading) {
+                sendButton.disabled = false;
+                sendButton.classList.remove('bg-slate-200', 'text-slate-400', 'cursor-not-allowed');
+                sendButton.classList.add('bg-blue-600', 'hover:bg-blue-700', 'text-white', 'cursor-pointer', 'shadow-md');
+            } else {
+                sendButton.disabled = true;
+                sendButton.classList.add('bg-slate-200', 'text-slate-400', 'cursor-not-allowed');
+                sendButton.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'text-white', 'cursor-pointer', 'shadow-md');
+            }
+        });
+
+        // Menggunakan tombol saran
+        function useSuggestion(text) {
+            userInput.value = text;
+            userInput.dispatchEvent(new Event('input'));
+            suggestionsDiv.style.display = 'none'; // Sembunyikan setelah dipakai
+        }
+
+        // Scroll ke bawah
+        function scrollToBottom() {
+            const chatMain = document.getElementById('chat-container');
+            chatMain.scrollTop = chatMain.scrollHeight;
+        }
+
+        // Fungsi format teks Markdown sederhana (bold, list, enter) ke HTML
+        function formatMarkdownToHTML(text) {
+            let html = text
+                // Escape HTML tags untuk keamanan
+                .replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                // Format **teks tebal**
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                // Format *teks miring*
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                // Ganti baris baru dengan <br>
+                .replace(/\n/g, '<br>');
+            return html;
+        }
+
+        // Tambah pesan ke antarmuka chat
+        function appendMessage(text, role) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            const isUser = role === 'user';
+            const formattedText = isUser ? text : formatMarkdownToHTML(text); // Jangan format input user berlebihan
+
+            messageDiv.innerHTML = `
+                <div class="flex gap-3 max-w-[90%] md:max-w-[80%] ${isUser ? 'flex-row-reverse' : 'flex-row'}">
+                    <div class="shrink-0 mt-1">
+                        ${isUser ? `
+                            <div class="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center shadow-sm">
+                                <i class="ph ph-user text-xl text-white"></i>
+                            </div>
+                        ` : `
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center border border-blue-200 shadow-sm">
+                                <i class="ph ph-robot text-xl text-blue-600"></i>
+                            </div>
+                        `}
+                    </div>
+                    <div class="p-4 rounded-2xl shadow-sm leading-relaxed text-[15px] ${
+                        isUser 
+                        ? 'bg-slate-800 text-white rounded-tr-sm' 
+                        : 'bg-white border border-slate-100 text-slate-700 rounded-tl-sm'
+                    }">
+                        ${formattedText}
+                    </div>
+                </div>
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // Fungsi fetch dengan Exponential Backoff
+        async function fetchWithRetry(url, options, retries = 5, backoff = 1000) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                if (retries > 0) {
+                    await new Promise(resolve => setTimeout(resolve, backoff));
+                    return fetchWithRetry(url, options, retries - 1, backoff * 2);
+                }
+                throw error;
+            }
+        }
+
+        // Kirim pesan ke API AI
+        async function handleSendMessage(e) {
+            e.preventDefault();
+            const text = userInput.value.trim();
+            if (!text || isLoading) return;
+
+            // Sembunyikan suggestions jika masih ada
+            if(suggestionsDiv.style.display !== 'none') {
+                suggestionsDiv.style.display = 'none';
+            }
+
+            // 1. Tampilkan pesan user
+            appendMessage(text, 'user');
+            
+            // 2. Persiapkan UI untuk loading
+            userInput.value = '';
+            userInput.dispatchEvent(new Event('input')); // trigger update tombol
+            userInput.disabled = true;
+            isLoading = true;
+            loadingIndicator.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            scrollToBottom();
+
+            // 3. Tambahkan ke history untuk Gemini
+            conversationHistory.push({
+                role: 'user',
+                parts: [{ text: text }]
+            });
+
+            const payload = {
+                contents: conversationHistory,
+                systemInstruction: {
+                    parts: [{ text: SYSTEM_INSTRUCTION }]
+                }
+            };
+
+            try {
+                // 4. Panggil API
+                const data = await fetchWithRetry(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const aiResponseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (aiResponseText) {
+                    // 5. Tampilkan pesan AI & simpan ke history
+                    appendMessage(aiResponseText, 'model');
+                    conversationHistory.push({
+                        role: 'model',
+                        parts: [{ text: aiResponseText }]
+                    });
+                } else {
+                    throw new Error('Respons tidak valid.');
+                }
+
+            } catch (error) {
+                console.error("Error API:", error);
+                errorText.textContent = "Maaf, Edo sedang kesulitan terhubung ke server. Coba lagi ya!";
+                errorMessage.classList.remove('hidden');
+                
+                // Hapus pesan user terakhir dari history agar bisa diulang
+                conversationHistory.pop();
+            } finally {
+                // 6. Kembalikan UI ke normal
+                isLoading = false;
+                loadingIndicator.classList.add('hidden');
+                userInput.disabled = false;
+                userInput.focus();
+            }
+        }
+
+        // Event listener form
+        chatForm.addEventListener('submit', handleSendMessage);
+    </script>
+</body>
+</html>
