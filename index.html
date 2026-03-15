@@ -81,8 +81,8 @@
                     <p class="text-blue-200 text-sm">Belajar Bersama Edo, Asisten Tutorialmu</p>
                 </div>
             </div>
-            <div class="hidden sm:flex items-center gap-2 text-blue-100 text-sm bg-blue-700 py-1 px-3 rounded-full">
-                <i class="ph ph-users"></i> Tutorial Interaktif
+            <div class="flex items-center gap-2">
+                <!-- Tombol Pengaturan API Key dihapus -->
             </div>
         </div>
     </header>
@@ -170,8 +170,13 @@
     <!-- JavaScript Logic -->
     <script>
         // --- Konfigurasi API ---
-        const apiKey = ""; // Kunci otomatis diinjeksi oleh platform
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        // Kunci API langsung ditanam
+        const apiKey = "sk-zdyD24v9WtJgevHdw95wuke3LXfJ07dROvc8urubxoTlpKLA"; 
+        
+        // URL API Agent Router. 
+        // Jika nanti diupload ke Github Pages dan error "Failed to fetch" / CORS, gunakan URL Proxy di bawah ini:
+        const API_URL = `https://agentrouter.org/v1/chat/completions`; 
+        // const API_URL = `https://corsproxy.io/?https://agentrouter.org/v1/chat/completions`;
 
         const SYSTEM_INSTRUCTION = `
 Anda adalah "Edo", asisten AI yang cerdas, sabar, dan bersahabat di platform "ForEdu".
@@ -283,10 +288,18 @@ Gaya Bahasa:
         async function fetchWithRetry(url, options, retries = 5, backoff = 1000) {
             try {
                 const response = await fetch(url, options);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error?.message || `HTTP error! status: ${response.status}`);
+                }
                 return await response.json();
             } catch (error) {
-                if (retries > 0) {
+                // Deteksi khusus untuk error CORS / Jaringan agar tidak perlu menunggu retry
+                if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+                    throw new Error('CORS_ERROR');
+                }
+                
+                if (retries > 0 && !error.message.includes('API key') && !error.message.includes('key')) {
                     await new Promise(resolve => setTimeout(resolve, backoff));
                     return fetchWithRetry(url, options, retries - 1, backoff * 2);
                 }
@@ -317,43 +330,53 @@ Gaya Bahasa:
             errorMessage.classList.add('hidden');
             scrollToBottom();
 
-            // 3. Tambahkan ke history untuk Gemini
+            // 3. Tambahkan ke history (Format OpenAI/OneAPI)
             conversationHistory.push({
                 role: 'user',
-                parts: [{ text: text }]
+                content: text
             });
 
             const payload = {
-                contents: conversationHistory,
-                systemInstruction: {
-                    parts: [{ text: SYSTEM_INSTRUCTION }]
-                }
+                model: "deepseek-v3.1", // <-- Menggunakan model sesuai setingan Agent Router kamu
+                messages: [
+                    { role: "system", content: SYSTEM_INSTRUCTION },
+                    ...conversationHistory
+                ]
             };
 
             try {
-                // 4. Panggil API
+                // 4. Panggil API Agent Router
                 const data = await fetchWithRetry(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
                     body: JSON.stringify(payload)
                 });
 
-                const aiResponseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                const aiResponseText = data.choices?.[0]?.message?.content;
 
                 if (aiResponseText) {
                     // 5. Tampilkan pesan AI & simpan ke history
-                    appendMessage(aiResponseText, 'model');
+                    appendMessage(aiResponseText, 'assistant');
                     conversationHistory.push({
-                        role: 'model',
-                        parts: [{ text: aiResponseText }]
+                        role: 'assistant',
+                        content: aiResponseText
                     });
                 } else {
-                    throw new Error('Respons tidak valid.');
+                    throw new Error('Respons tidak valid dari AI.');
                 }
 
             } catch (error) {
                 console.error("Error API:", error);
-                errorText.textContent = "Maaf, Edo sedang kesulitan terhubung ke server. Coba lagi ya!";
+                
+                // Tampilkan pesan error yang lebih detail
+                if (error.message === 'CORS_ERROR') {
+                    errorText.innerHTML = `<strong>Error CORS:</strong> Server Agent Router menolak koneksi langsung dari browser. API ini dirancang untuk dijalankan melalui Backend (Node.js/Python).`;
+                } else {
+                    errorText.textContent = `Error AI: ${error.message}`;
+                }
                 errorMessage.classList.remove('hidden');
                 
                 // Hapus pesan user terakhir dari history agar bisa diulang
